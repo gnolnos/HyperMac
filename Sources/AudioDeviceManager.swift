@@ -26,6 +26,7 @@ final class AudioDeviceManager: ObservableObject {
     static let shared = AudioDeviceManager()
     @Published private(set) var devices: [AudioOutputDevice] = []
     @Published private(set) var lastError: String?
+    @Published private(set) var scanning = false
 
     private let system: AudioObjectID = AudioObjectID(kAudioObjectSystemObject)
 
@@ -59,11 +60,24 @@ final class AudioDeviceManager: ObservableObject {
         if out != devices { devices = out }
     }
 
-    func setDefault(_ id: AudioDeviceID) -> Bool {
+    public func setDefault(_ id: AudioDeviceID) -> Bool {
         var v = id
         let ok = AudioObjectSetPropertyData(system, &defaultAddr, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), &v) == noErr
         if ok { refresh() } else { lastError = "Không đổi được loa mặc định" }
         return ok
+    }
+
+    /// "Quét tìm loa": đọc lại rooster thiết bị xuất âm (AirPlay/Bluetooth/… hiện trong CoreAudio).
+    /// Lưu ý: macOS  chỉ đưa loa AirPlay/Bluetooth vào rooster sau khi route được chọn 1 lần
+    /// (qua menu Sound / Control Center) — bản thân app không thể ép macOS "quét" AirPlay.
+    public func scan() {
+        guard !scanning else { return }
+        scanning = true
+        refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            self?.refresh()
+            self?.scanning = false
+        }
     }
 
     // MARK: snapshot một thiết bị
@@ -125,13 +139,17 @@ final class AudioDeviceManager: ObservableObject {
         }
     }
 
-    // MARK: Multi-Output group (AudioSwitcher style) — tạo audio ảo gộp các loa, phát đồng thời
-    func toggleGroup(memberIDs: [AudioDeviceID]) -> Bool {
+    // MARK: Multi-Output group (AudioSwitcher style) — tạo audio ảo gộp các loa, phát đồng thời.
+    // AudioSwitcher yêu cầu: (1) chỉ định "loa chính" làm MASTER clock, (2) set sample-rate chung
+    // cho aggregate (44.1/48k...) — thiếu 2 thứ này aggregate lệch clock → các loa thành viên bị
+    // dim/không phát. Đây là gốc rễ "group tạo được nhưng không thấy âm thanh".
+    public func toggleGroup(memberIDs: [AudioDeviceID], masterID: AudioDeviceID?, sampleRate: Double = 0) -> Bool {
         // Nếu group hiện hữu → hủy trước (idempotent). Tìm aggregate device hiện có do HyperMac tạo.
         if let old = devices.first(where: { $0.isMultiOutput && $0.name.hasPrefix("HyperMac") }) {
             _ = destroy(old.id)
         }
         guard memberIDs.count >= 2 else { return false }
+        let master = masterID != nil && memberIDs.contains(masterID!) ? masterID! : memberIDs[0]
         // lấy UID của từng loa thành viên
         var uids: [CFString] = []
         for id in memberIDs {
@@ -143,9 +161,10 @@ final class AudioDeviceManager: ObservableObject {
         }
         guard uids.count >= 2 else { lastError = "Không đọc được UID 1 trong các loa"; return false }
 
-        let subDevs: [CFDictionary] = uids.enumerated().map { i, uid in
+        let masterUID = uids[memberIDs.firstIndex(of: master)!]
+        let subDevs: [CFDictionary] = uids.map { uid in
             [kAudioSubDeviceUIDKey as String: uid,
-             kAudioAggregateDeviceMasterSubDeviceKey as String: i == 0 ? kCFBooleanTrue : kCFBooleanFalse] as CFDictionary
+             kAudioAggregateDeviceMasterSubDeviceKey as String: uid == masterUID ? kCFBooleanTrue! : kCFBooleanFalse] as CFDictionary
         }
         let aggUID = CFUUIDCreateString(nil, CFUUIDCreate(nil)) as String
         let desc: [String: Any] = [
@@ -158,8 +177,28 @@ final class AudioDeviceManager: ObservableObject {
         var out: AudioObjectID = 0
         let st = audioHwCreateAggregate(desc as CFDictionary, &out)
         if st != 0 { lastError = "Không tạo được Multi-Output (code \(st))"; return false }
+        // set sample-rate chung cho aggregate: mặc định theo loa chính, hoặc theo người dùng chọn.
+        let rate = sampleRate > 0 ? sampleRate : currentRate(master)
+        if rate > 0 && setNominalRate(out, rate) == false {
+            // không bắt buộc — macOS có thể tự chọn; không chặn
+        }
         _ = setDefault(out)
         return true
+    }
+
+    // MARK: sample-rate helpers (AudioSwitcher: 44.1/48k …)
+    private var rateAddr = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyNominalSampleRate, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+
+    public func currentRate(_ id: AudioDeviceID) -> Double {
+        var r: Float64 = 0; var sz = UInt32(MemoryLayout<Float64>.size)
+        AudioObjectGetPropertyData(id, &rateAddr, 0, nil, &sz, &r)
+        return r
+    }
+
+    @discardableResult public func setNominalRate(_ id: AudioDeviceID, _ rate: Double) -> Bool {
+        var rr = Float64(rate)
+        return AudioObjectSetPropertyData(id, &rateAddr, 0, nil, UInt32(MemoryLayout<Float64>.size), &rr) == noErr
     }
 
     func destroy(_ id: AudioDeviceID) -> Bool {

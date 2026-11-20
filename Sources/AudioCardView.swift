@@ -6,7 +6,9 @@ import CoreAudio
 struct AudioCardView: View {
     @ObservedObject var audio = AudioDeviceManager.shared
     @State private var groupMode = false
-    @State private var chosen: Set<AudioDeviceID> = []
+    @State private var chosen = Set<AudioDeviceID>()
+    @State private var chosenMaster: AudioDeviceID?
+    @State private var rateChoice = 0   // 0 = Tự động (theo loa chính), 1 = 44.1k, 2 = 48k
 
     var visibleDevices: [AudioOutputDevice] { Array(audio.devices.prefix(9)) }
     var extraCount: Int { max(0, audio.devices.count - 9) }
@@ -19,9 +21,19 @@ struct AudioCardView: View {
                 Image(systemName: "speaker.wave.3.fill").font(.system(size: FS.label)).foregroundStyle(.secondary)
                 Text(tr("Âm thanh & Loa", "Audio & Speakers")).font(.system(size: FS.label, weight: .semibold))
                 Spacer()
-                Button { audio.refresh() } label: {
-                    Image(systemName: "arrow.clockwise").font(.system(size: FS.caption)).foregroundStyle(.secondary)
-                }.buttonStyle(.plain)
+                Button { audio.scan() } label: {
+                    HStack(spacing: 4) {
+                        if audio.scanning {
+                            ProgressView().controlSize(.mini)
+                        } else {
+                            Image(systemName: "antenna.radiowaves.left.and.right").font(.system(size: FS.caption))
+                        }
+                        Text(tr("Quét loa", "Scan")).font(.system(size: FS.caption, weight: .medium))
+                    }
+                    .foregroundStyle(Color.accentColor)
+                }
+                .buttonStyle(.plain)
+                .disabled(audio.scanning)
             }
 
             ScrollView(.vertical, showsIndicators: true) {
@@ -79,12 +91,31 @@ struct AudioCardView: View {
                         }
                     }
                     .frame(maxHeight: 160)
+                    // Loa chính (master clock sync) — như AudioSwitcher
+                    if chosen.count >= 1 {
+                        Picker(tr("Loa chính (clock)", "Master (clock sync)"), selection: $chosenMaster) {
+                            ForEach(Array(chosen), id: \.self) { id in
+                                Text(nameOf(id)).tag(Optional(id))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .font(.system(size: FS.caption))
+                    }
+                    // Sample rate chung — như AudioSwitcher (tránh lệch giữa 2 thiết bị)
+                    Picker(tr("Sample rate", "Sample rate"), selection: $rateChoice) {
+                        Text(tr("Tự động (theo loa chính)", "Auto (follow master)")).tag(0)
+                        Text("44,1 kHz").tag(1)
+                        Text("48 kHz").tag(2)
+                    }
+                    .pickerStyle(.menu)
+                    .font(.system(size: FS.caption))
                     if let err = audio.lastError {
                         Text(err).font(.system(size: FS.caption)).foregroundStyle(Tone.bad)
                     }
                     Button {
-                        _ = audio.toggleGroup(memberIDs: Array(chosen))
-                        groupMode = false; chosen.removeAll()
+                        let rate: Double = rateChoice == 1 ? 44100 : (rateChoice == 2 ? 48000 : 0)
+                        _ = audio.toggleGroup(memberIDs: Array(chosen), masterID: chosenMaster, sampleRate: rate)
+                        groupMode = false; chosen.removeAll(); chosenMaster = nil
                     } label: {
                         Text(tr("Tạo Multi-Output", "Create Multi-Output"))
                             .font(.system(size: FS.body, weight: .semibold))
@@ -104,6 +135,23 @@ struct AudioCardView: View {
         .overlay(RoundedRectangle(cornerRadius: Rad.md).strokeBorder(Color.primary.opacity(0.06)))
     }
 
+    private func nameOf(_ id: AudioDeviceID) -> String {
+        audio.devices.first(where: { $0.id == id })?.name ?? "\(id)"
+    }
+
+    private func transportIcon(_ t: String) -> String? {
+        switch t {
+        case "AirPlay": return "airplayaudio"
+        case "Bluetooth": return "hksign.bluetooth.topology.center"
+        case "HDMI": return "rectangle.inset.filled"
+        case "DisplayPort": return "display"
+        case "USB": return "cable.connector"
+        case "Built-in": return "laptopcomputer"
+        case "Multi-Output": return "square.stack.3d.forward.dottedline"
+        default: return nil
+        }
+    }
+
     private func deviceRow(_ d: AudioOutputDevice) -> some View {
         Button {
             if !d.isMultiOutput { _ = audio.setDefault(d.id) }
@@ -112,6 +160,9 @@ struct AudioCardView: View {
                 Image(systemName: d.isDefault ? "speaker.wave.2.fill" : "speaker.wave.2")
                     .font(.system(size: FS.caption))
                     .foregroundStyle(d.isDefault ? Color.accentColor : .secondary)
+                if let ico = transportIcon(d.transport) {
+                    Image(systemName: ico).font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 13)
+                }
                 Text(d.name).font(.system(size: FS.body)).lineLimit(1).foregroundStyle(.primary)
                 Spacer(minLength: 4)
                 if !d.isAlive { Text("off").font(.system(size: FS.caption)).foregroundStyle(Tone.bad) }
