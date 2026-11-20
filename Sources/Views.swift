@@ -1842,6 +1842,8 @@ struct BatteryCardView: View {
     @ObservedObject var batteryManager: BatteryManager
     @ObservedObject var energyManager: ProcessEnergyManager = ProcessEnergyManager.shared
     var onSelectThermalSection: (() -> Void)? = nil
+    @State private var showPowerHover = false
+    @State private var hoverTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -2228,6 +2230,18 @@ struct BatteryCardView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.top, 2)
+        }
+        // Hover → popover chi tiết nguồn điện (Activity Monitor POWER/ENERGY style).
+        .contentShape(Rectangle())
+        .onHover { inside in
+            hoverTask?.cancel()
+            hoverTask = Task {
+                try? await Task.sleep(nanoseconds: inside ? 220_000_000 : 0)
+                showPowerHover = inside
+            }
+        }
+        .popover(isPresented: $showPowerHover, arrowEdge: .top) {
+            HoverPowerDetailsView()
         }
     }
 
