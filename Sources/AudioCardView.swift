@@ -24,12 +24,17 @@ struct AudioCardView: View {
                 }.buttonStyle(.plain)
             }
 
-            ForEach(visibleDevices) { d in
-                deviceRow(d)
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(spacing: 0) {
+                    ForEach(visibleDevices) { d in
+                        deviceRow(d)
+                    }
+                    if extraCount > 0 {
+                        Text(tr("+\(extraCount) thiết bị khác…", "+\(extraCount) more…")).font(.system(size: FS.caption)).foregroundStyle(.tertiary).padding(.top, 3)
+                    }
+                }
             }
-            if extraCount > 0 {
-                Text(tr("+\(extraCount) thiết bị khác…", "+\(extraCount) more…")).font(.system(size: FS.caption)).foregroundStyle(.tertiary)
-            }
+            .frame(maxHeight: 172)
 
             Divider()
 
@@ -55,19 +60,25 @@ struct AudioCardView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(tr("Chọn loa để phát đồng thời (loose-sync local):", "Pick outputs to play together (loose-sync local):"))
                         .font(.system(size: FS.caption)).foregroundStyle(.secondary)
-                    ForEach(pickable) { d in
-                        Button {
-                            if chosen.contains(d.id) { chosen.remove(d.id) } else { chosen.insert(d.id) }
-                        } label: {
-                            HStack {
-                                Image(systemName: chosen.contains(d.id) ? "checkmark.square.fill" : "square")
-                                    .foregroundStyle(chosen.contains(d.id) ? Color.accentColor : .secondary)
-                                Text(d.name).font(.system(size: FS.body)).foregroundStyle(.primary)
-                                Spacer()
-                                Text(d.transport).font(.system(size: FS.caption)).foregroundStyle(.tertiary)
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(spacing: 0) {
+                            ForEach(pickable) { d in
+                                Button {
+                                    if chosen.contains(d.id) { chosen.remove(d.id) } else { chosen.insert(d.id) }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: chosen.contains(d.id) ? "checkmark.square.fill" : "square")
+                                            .foregroundStyle(chosen.contains(d.id) ? Color.accentColor : .secondary)
+                                        Text(d.name).font(.system(size: FS.body)).foregroundStyle(.primary).lineLimit(1)
+                                        Spacer()
+                                        Text(d.transport).font(.system(size: FS.caption)).foregroundStyle(.tertiary)
+                                    }
+                                    .contentShape(Rectangle())
+                                }.buttonStyle(.plain)
                             }
-                        }.buttonStyle(.plain)
+                        }
                     }
+                    .frame(maxHeight: 160)
                     if let err = audio.lastError {
                         Text(err).font(.system(size: FS.caption)).foregroundStyle(Tone.bad)
                     }

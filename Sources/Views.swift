@@ -363,6 +363,12 @@ struct HardwareCareTabView: View {
                     icon: "thermometer.sun.fill",
                     badge: thermalManager.cpuAvgTemp > 0 ? String(format: "%.0f°C", thermalManager.displayTemp) : nil
                 )
+                sectionButton(
+                    index: 2,
+                    title: tr("Âm thanh & Loa", "Audio & Speakers"),
+                    icon: "speaker.wave.2.fill",
+                    badge: AudioDeviceManager.shared.devices.first(where: { $0.isDefault })?.name
+                )
             }
             .padding(3)
             .background(RoundedRectangle(cornerRadius: Rad.sm).fill(Color.primary.opacity(0.04)))
@@ -374,20 +380,18 @@ struct HardwareCareTabView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 4)
 
-            // Âm thanh & Loa — quản lý thiết bị xuất âm + Multi-Output group
-            AudioCardView()
-                .padding(.horizontal, 12)
-                .padding(.top, 4)
-
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 8) {
-                    if thermalManager.selectedSection == 0 {
+                    switch thermalManager.selectedSection {
+                    case 0:
                         BatteryCardView(batteryManager: batteryManager, onSelectThermalSection: {
                             withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                                 thermalManager.selectedSection = 1
                             }
                         })
-                    } else {
+                    case 2:
+                        AudioCardView()
+                    default:
                         ThermalAndFanCardView(thermalManager: thermalManager, systemMonitor: systemMonitor)
                     }
                 }
