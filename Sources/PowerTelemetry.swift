@@ -30,6 +30,7 @@ public final class PowerTelemetryManager: ObservableObject {
     @Published public private(set) var snapshot = PowerSnapshot()
 
     private var timer: Timer?
+    private let smc = AppleSMCClient()
 
     private init() {
         // đọc 1 lần khi khởi tạo để UI có số ngay
@@ -87,9 +88,11 @@ public final class PowerTelemetryManager: ObservableObject {
             if let v = tele["AccumulatedSystemEnergyConsumed"] as? Int { s.consumedWh = Double(v) / 1_000_000.0 }
             else if let v = tele["AccumulatedSystemEnergyConsumed"] as? UInt64 { s.consumedWh = Double(Int64(bitPattern: v)) / 1_000_000.0 }
         } else {
-            // Intel: SystemPower (mA) × Voltage (V) = mW → /1000 = W ; Amperage × V = battery W
-            if let sp = battery["SystemPower"] as? Int, s.voltage > 0 {
-                s.systemTotalW = Double(sp) * s.voltage / 1_000.0
+            // Intel: leading SMC DC-in (VD0R×ID0R = u16 BE / 1024 → V×A = W) — live + reactive,
+            // chính xác hơn registry `SystemPower` (stale, không đổi theo tải).
+            // Đọc in-process qua AppleSMCClient (0 subprocess, 0 root).
+            if let v = smcDouble("VD0R"), let a = smcDouble("ID0R"), v > 0, a > 0 {
+                s.systemTotalW = v * a
             }
             if s.amperage != 0, s.voltage > 0 {
                 s.batteryW = Double(s.amperage) * s.voltage / 1_000.0
@@ -97,5 +100,11 @@ public final class PowerTelemetryManager: ObservableObject {
         }
         s.timestamp = Date()
         if s != snapshot { snapshot = s }
+    }
+
+    /// `sp5a` type: u16 big-endian / 1024 (VD0R=V, ID0R=A trên Intel). In-process.
+    private func smcDouble(_ key: String) -> Double? {
+        guard let b = smc.readKeyBytes(key), b.count >= 2 else { return nil }
+        return Double((UInt16(b[0]) << 8) | UInt16(b[1])) / 1024.0
     }
 }
