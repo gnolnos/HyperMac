@@ -1,13 +1,20 @@
-# ⚡ HyperMac — Siêu Tiện Ích Tất-Cả-Trong-Một Cho Mac (Apple Silicon)
+# ⚡ HyperMac — Siêu Tiện Ích Tất-Cả-Trong-Một Cho Mac (Universal: Intel + Apple Silicon)
 
-[![Version](https://img.shields.io/badge/version-v1.9.8-blue.svg)](https://github.com/mrgoose000000-gif/HyperMac/releases/latest)
-[![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-black.svg)](https://github.com/mrgoose000000-gif/HyperMac)
-[![Architecture](https://img.shields.io/badge/architecture-Apple%20Silicon%20(arm64)-brightgreen.svg)](https://github.com/mrgoose000000-gif/HyperMac)
-[![Memory Footprint](https://img.shields.io/badge/RAM-~45MB-success.svg)](https://github.com/mrgoose000000-gif/HyperMac)
+[![Version](https://img.shields.io/badge/version-v1.10.0-blue.svg)](https://github.com/gnolnos/HyperMac/releases/latest)
+[![Platform](https://img.shields.io/badge/platform-macOS%2014.0%2B-black.svg)](https://github.com/gnolnos/HyperMac)
+[![Architecture](https://img.shields.io/badge/architecture-Universal%20(x86_64%20%2B%20arm64)-brightgreen.svg)](https://github.com/gnolnos/HyperMac)
+[![Memory Footprint](https://img.shields.io/badge/RAM-~45MB-success.svg)](https://github.com/gnolnos/HyperMac)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Donate](https://img.shields.io/badge/❤️_Donate-Ủng_hộ-ff69b4.svg)](#-ủng-hộ-phát-triển-donate)
 
-> 🚀 **HyperMac** là bộ công cụ tối thượng viết bằng **Swift thuần** dành riêng cho máy Mac chạy chip **Apple Silicon (M1, M2, M3, M4, M5 — Air / Pro / Max / Ultra)**. Ứng dụng gom trọn tính năng của **9 ứng dụng rời rạc** vào một icon duy nhất trên thanh Menu Bar với mức tiêu hao RAM siêu nhẹ **chỉ ~45MB**:
+> ### 🍴 Fork của `gnolnos` — bản **Universal** (Intel + Apple Silicon)
+> Bản fork này kế thừa nguyên bản gốc của **Nguyễn Khắc Đại** (`mrgoose000000-gif`), giữ nguyên mọi
+> credit + giấy phép **GPL-3.0**, và bổ sung: **port Intel x86_64**, **fan-curve theo nhiệt độ**,
+> **power telemetry (POWER/ENERGY)**, **quản lý loa & Multi-Output group (AudioSwitcher-style)**,
+> nút quét tìm loa, fix pin Intel, cảnh báo DDC/CI… — đóng gói **universal** chạy cả Mac M lẫn Mac Intel.
+> Chi tiết bản quyền + danh mục thay đổi: [`README-FORK.md`](README-FORK.md).
+
+> 🚀 **HyperMac** là bộ công cụ tối thượng viết bằng **Swift thuần** cho máy Mac — **cả chip Apple Silicon (arm64) lẫn Intel (x86_64)**. Ứng dụng gom trọn tính năng của **9 ứng dụng rời rạc** vào một icon duy nhất trên thanh Menu Bar với mức tiêu hao RAM siêu nhẹ **chỉ ~45MB**:
 > 
 > **Bartender & Hidden Bar** (Gom gọn thanh Menu Bar) + **CleanMyMac & AppCleaner** (Dọn rác hệ thống & Gỡ app tận gốc) + **Rectangle** (Chia cửa sổ) + **AltTab** (Chuyển cửa sổ đa hàng) + **Finder Cut & Paste** (Cắt & Dán tệp Windows-style) + **Maccy** (Lịch sử Clipboard) + **AlDente Pro** (Khóa sạc 80% SMC) + **BetterDisplay** (Chỉnh sáng màn ngoài F1/F2) + **Nhiệt độ & Điều khiển quạt** (Đo nhiệt độ nhân CPU/GPU từ AppleSMC + cảm biến HID PMU & điều khiển đa quạt) + **Đo tốc độ chép file** (ổ vật lý & NAS qua LAN).
 
@@ -18,7 +25,7 @@
 ### ⬇️ Bước 1: Tải bộ cài dựng sẵn
 Bấm vào nút bên dưới để tải về phiên bản mới nhất:
 
-[![Download HyperMac](https://img.shields.io/badge/📥_TẢI_VỀ-HyperMac.zip_(v1.9.8)-2563EB?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/mrgoose000000-gif/HyperMac/releases/latest/download/HyperMac.zip)
+[![Download HyperMac](https://img.shields.io/badge/📥_TẢI_VỀ-HyperMac-Universal.zip_(v1.10.0)-2563EB?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/gnolnos/HyperMac/releases/latest/download/HyperMac-Universal.zip)
 
 *(Hoặc vào trang [GitHub Releases](https://github.com/mrgoose000000-gif/HyperMac/releases) để xem danh sách tất cả các bản phát hành).*
 
