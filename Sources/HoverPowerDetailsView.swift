@@ -46,7 +46,8 @@ struct HoverPowerDetailsView: View {
             if isAS && s.averageW != 0 { PowerHoverRow(title: tr("TB hệ thống", "Avg System"), value: w(s.averageW)) }
             if s.voltage > 0 { PowerHoverRow(title: tr("Điện áp", "Voltage"), value: String(format: "%.2f V", s.voltage)) }
             sectionHeader("Energy")
-            PowerHoverRow(title: tr("Tổng tiêu thụ", "Total Consumption"),
+            PowerHoverRow(title: isAS ? tr("Tiêu thụ từ khởi động", "Total since boot")
+                                      : tr("Tổng tiêu thụ", "Total Consumption"),
                           value: isAS ? String(format: "%.1f Wh", s.consumedWh) : "—")
         }
         .frame(width: 232)

@@ -87,12 +87,12 @@ public final class PowerTelemetryManager: ObservableObject {
             if let v = tele["AccumulatedSystemEnergyConsumed"] as? Int { s.consumedWh = Double(v) / 1_000_000.0 }
             else if let v = tele["AccumulatedSystemEnergyConsumed"] as? UInt64 { s.consumedWh = Double(Int64(bitPattern: v)) / 1_000_000.0 }
         } else {
-            // Intel: SystemPower (mA) × Voltage (mV) / 1e6 = W ; Amperage × V = battery W
+            // Intel: SystemPower (mA) × Voltage (V) = mW → /1000 = W ; Amperage × V = battery W
             if let sp = battery["SystemPower"] as? Int, s.voltage > 0 {
-                s.systemTotalW = Double(sp) * s.voltage / 1_000_000.0
+                s.systemTotalW = Double(sp) * s.voltage / 1_000.0
             }
             if s.amperage != 0, s.voltage > 0 {
-                s.batteryW = Double(s.amperage) * s.voltage / 1_000_000.0
+                s.batteryW = Double(s.amperage) * s.voltage / 1_000.0
             }
         }
         s.timestamp = Date()
