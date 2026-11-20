@@ -374,6 +374,11 @@ struct HardwareCareTabView: View {
                 .padding(.horizontal, 12)
                 .padding(.top, 4)
 
+            // Âm thanh & Loa — quản lý thiết bị xuất âm + Multi-Output group
+            AudioCardView()
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 8) {
                     if thermalManager.selectedSection == 0 {
